@@ -44,9 +44,9 @@ function writeModelToUrl(model: QueueModelType): void {
  */
 function App() {
   // Simulation parameters (adjustable by user)
-  const [arrivalRate, setArrivalRate] = useState(10); // λ (customers per minute)
-  const [serviceRate, setServiceRate] = useState(12); // μ (customers per minute per server)
-  const [numServers, setNumServers] = useState(2); // c (number of servers)
+  const [arrivalRate, setArrivalRate] = useState(3000); // λ (customers per minute)
+  const [serviceRate, setServiceRate] = useState(189.87342); // μ (customers per minute per server)
+  const [numServers, setNumServers] = useState(16); // c (number of servers)
   const [simulationSpeed, setSimulationSpeed] = useState(1); // Speed multiplier
 
   // Model selection — initialised from ?model= querystring (default: MMC)
@@ -183,9 +183,9 @@ function App() {
           <Slider
             label="Arrival Rate (λ)"
             value={arrivalRate}
-            min={1}
-            max={30}
-            step={1}
+            min={60}
+            max={6000}
+            step={60}
             unit=" customers/min"
             tooltip="Average number of customers arriving per minute (Poisson process)"
             onChange={setArrivalRate}
@@ -193,9 +193,9 @@ function App() {
           <Slider
             label="Service Rate (μ)"
             value={serviceRate}
-            min={1}
-            max={30}
-            step={1}
+            min={189}
+            max={190}
+            step={0.001}
             unit=" customers/min"
             tooltip="Average number of customers one server can handle per minute (Exponential service times)"
             onChange={setServiceRate}
@@ -204,7 +204,7 @@ function App() {
             label="Number of Servers (c)"
             value={numServers}
             min={1}
-            max={10}
+            max={20}
             step={1}
             tooltip="Number of servers available to handle customers (M/M/c model)"
             onChange={setNumServers}
@@ -257,7 +257,13 @@ function App() {
             </span>
           </div>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Utilization</span>
+            <span className={styles.metricLabel}>Load on system</span>
+            <span className={styles.metricValue}>
+              {(metrics.utilization * numServers).toFixed(1)} Erlang
+            </span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Load per server</span>
             <span className={styles.metricValue}>
               {(metrics.utilization * 100).toFixed(1)}%
             </span>
@@ -277,7 +283,7 @@ function App() {
               <div className={styles.metric}>
                 <span className={styles.metricLabel}>Avg Wait Time (Wq)</span>
                 <span className={styles.metricValue}>
-                  {metrics.averageWaitTime.toFixed(2)} min
+                  {metrics.averageWaitTime.toFixed(2)} sec
                 </span>
               </div>
               <div className={styles.metric}>
@@ -289,7 +295,7 @@ function App() {
               <div className={styles.metric}>
                 <span className={styles.metricLabel}>Avg System Time (W)</span>
                 <span className={styles.metricValue}>
-                  {metrics.averageSystemTime.toFixed(2)} min
+                  {metrics.averageSystemTime.toFixed(2)} sec
                 </span>
               </div>
               {'rejectionProbability' in metrics && (

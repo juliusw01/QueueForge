@@ -155,48 +155,69 @@ export class QueueSimulation {
     const arrivalRatePerSec = arrivalRate / 60;
     const serviceRatePerSec = serviceRate / 60;
 
+    const poisson = (mean: number): number => {
+      const L = Math.exp(-mean);
+      let k = 0;
+      let p = 1;
+      do {
+        k++;
+        p *= Math.random();
+      } while (p > L);
+      return k - 1;
+    };
+
+    const binomial = (n: number, p: number): number => {
+      let x = 0;
+      for (let i = 0; i < n; i++) {
+        if (Math.random() < p) x++;
+      }
+      return x;
+    };
+
     // 1. Simulate arrivals (Poisson process)
     // For small time steps, probability of one arrival ≈ λ * Δt
     // We use a Bernoulli trial to determine if an arrival occurs
-    const arrivalProbability = arrivalRatePerSec * timeStep;
-    const arrivals = Math.random() < arrivalProbability ? 1 : 0;
+    //const arrivalProbability = arrivalRatePerSec * timeStep;
+    //const arrivals = Math.random() < arrivalProbability ? 1 : 0;
+    const arrivals = poisson(arrivalRatePerSec * timeStep)
 
-    if (arrivals > 0) {
-      this.state.totalArrivals += arrivals;
-      if (maxCapacity !== undefined && this.state.queueLength + this.state.serversBusy >= maxCapacity) {
-        this.state.totalRejected += arrivals;
-      } else {
-        this.state.queueLength += arrivals;
-      }
+    this.state.totalArrivals += arrivals;
+
+    let acceptedArrivals = arrivals;
+
+    if (maxCapacity !== undefined) {
+      const currentSystemSize = this.state.queueLength + this.state.serversBusy;
+      const availableSpace = Math.max(0, maxCapacity - currentSystemSize);
+
+      acceptedArrivals = Math.min(arrivals, availableSpace);
+      this.state.totalRejected += (arrivals - acceptedArrivals);
     }
+
+    this.state.queueLength += acceptedArrivals;
+    /**
+    if (maxCapacity !== undefined && this.state.queueLength + this.state.serversBusy >= maxCapacity) {
+      this.state.totalRejected += arrivals;
+    } else {
+      this.state.queueLength += arrivals;
+    }
+    **/
 
     // 2. Simulate service completions (Exponential service times)
     // Each busy server has probability μ * Δt of completing service
     // Total completions depends on how many servers are actually busy
-    const serversCurrentlyBusy = Math.min(
-      this.state.queueLength + this.state.serversBusy,
-      numServers
-    );
+    const idleServers = numServers - this.state.serversBusy
+    const startingService = Math.min(this.state.queueLength, idleServers);
 
-    let completions = 0;
-    for (let i = 0; i < serversCurrentlyBusy; i++) {
-      const serviceCompletionProb = serviceRatePerSec * timeStep;
-      if (Math.random() < serviceCompletionProb) {
-        completions++;
-      }
-    }
+    this.state.queueLength -= startingService;
+    this.state.serversBusy += startingService;
+
+    const completionProb = Math.min(1, serviceRatePerSec * timeStep); // guard against >1
+    const completions = binomial(this.state.serversBusy, completionProb);
 
     // 3. Update server and queue states
     // Servers complete service, customers leave system
+    this.state.serversBusy -= completions;
     this.state.totalServed += completions;
-
-    // Assign customers from queue to servers (FIFO discipline)
-    const customersToServe = Math.min(this.state.queueLength, completions);
-    this.state.queueLength -= customersToServe;
-    this.state.serversBusy = Math.max(0, serversCurrentlyBusy - completions);
-
-    // Ensure queue length is never negative
-    this.state.queueLength = Math.max(0, this.state.queueLength);
 
     // 4. Record statistics for calculating averages
     this.state.cumulativeQueueLength += this.state.queueLength;

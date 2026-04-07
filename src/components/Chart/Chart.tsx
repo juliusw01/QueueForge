@@ -118,7 +118,7 @@ export const Chart: React.FC<ChartProps> = ({
     ctx.translate(15, height / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = 'center';
-    ctx.fillText(yAxisLabel, 0, 0);
+    ctx.fillText(yAxisLabel, 0, -15);
     ctx.restore();
 
     // X-axis label — positioned in the lower portion of padding, below tick numbers

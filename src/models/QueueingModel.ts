@@ -144,7 +144,7 @@ export class MMCQueueingModel {
     }
 
     const lq = this.calculateAverageQueueLength(params);
-    return lq / params.arrivalRate;
+    return (lq / params.arrivalRate) * 60; //get wait time in seconds
   }
 
   /**
@@ -157,7 +157,7 @@ export class MMCQueueingModel {
     }
 
     const l = this.calculateAverageSystemLength(params);
-    return l / params.arrivalRate;
+    return (l / params.arrivalRate) * 60; //get system time in seconds
   }
 
   /**
